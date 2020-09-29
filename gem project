@@ -1,0 +1,110 @@
+#include <Adafruit_CircuitPlayground.h>
+
+//color presets
+int presets[3][10][3] {
+  {
+    {224, 65, 70},
+    {224, 65, 70},
+    {224, 65, 70},
+    {224, 65, 70},
+    {224, 65, 70},
+    {224, 65, 70},
+    {224, 65, 70},
+    {224, 65, 70},
+    {224, 65, 70},
+    {224, 65, 70}
+  },
+  {
+    {92, 137, 132},
+    {92, 137, 132},
+    {92, 137, 132},
+    {92, 137, 132},
+    {92, 137, 132},
+    {92, 137, 132},
+    {92, 137, 132},
+    {92, 137, 132},
+    {92, 137, 132},
+    {92, 137, 132}
+
+  },
+  {
+    {92, 137, 132},
+    {224, 65, 70},
+    {92, 137, 132},
+    {224, 65, 70},
+    {92, 137, 132},
+    {224, 65, 70},
+    {92, 137, 132},
+    {224, 65, 70},
+    {92, 137, 132},
+    {224, 65, 70}
+  }
+};
+
+
+void setup() {
+  Serial.begin(9600);
+  CircuitPlayground.begin();
+}
+
+//set state to red
+int state = 0;
+boolean moving = false;
+//timer activated after each motion
+float shakeTimer = 0;
+
+void loop() {
+
+  //bring timer down to 0 constantly
+  shakeTimer --;
+
+  //run states method
+  states();
+  float total = abs(CircuitPlayground.motionX()) + abs(CircuitPlayground.motionY()) + abs(CircuitPlayground.motionZ());
+  float tilt = CircuitPlayground.motionX();
+
+  //cases for each possible motion, shake activates a boolean that stops left and right tilt cases until another shake is input,
+  //a timer for 1 second is set off after each motion to stop repeat motions
+  if (total > 20 && shakeTimer <= 0 && state != 2) {
+    state = 2;
+    shakeTimer = 60;
+  }
+  else if (total > 20 && shakeTimer <= 0 && state == 2) {
+    state = 0;
+    shakeTimer = 60;
+  }
+  else if (tilt > 2 && shakeTimer <= 0 && state != 2) {
+    state = 0;
+    Serial.println (CircuitPlayground.motionX());
+    shakeTimer = 60;
+  }
+  else if (tilt < -2 && shakeTimer <= 0 && state != 2) {
+    state = 1;
+    Serial.println (CircuitPlayground.motionX());
+    shakeTimer = 60;
+  }
+  else moving = false;
+}
+
+void states() {
+  //each state sets the LEDs to a different colour
+  if (state == 0) {
+    for (int i = 0; i < 10; i++) {
+      CircuitPlayground.setPixelColor(i, presets[0][i][0], presets[0][i][1], presets[0][i][2]);
+    }
+  }
+
+  else if (state == 1) {
+    for (int i = 0; i < 10; i++) {
+      CircuitPlayground.setPixelColor(i, presets[1][i][0], presets[1][i][1], presets[1][i][2]);
+    }
+  }
+  else if (state == 2) {
+    for (int i = 0; i < 10; i++) {
+      CircuitPlayground.setPixelColor(i, presets[2][i][0], presets[2][i][1], presets[2][i][2]);
+    }
+  }
+  else if (state > 2) {
+    state = 0;
+  }
+}
