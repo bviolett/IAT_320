@@ -1,0 +1,104 @@
+#include <Adafruit_CircuitPlayground.h>
+void setup() {
+  Serial.begin(9600);
+  CircuitPlayground.begin();
+}
+//set timer for 50 seconds
+//int alarmTimer = 3000;
+int alarmTimer = 600;
+void loop() {
+
+  //turn off the the highest-numbered pixel on the board
+  if (states() < 10) {
+    CircuitPlayground.setPixelColor(states(), 0, 0, 0);
+  }
+  //turn on as many pixels left as there are in the timer
+  for (int i = 0; i < states(); i++) {
+
+    CircuitPlayground.setPixelColor(i, 224, 65, 70);
+  }
+  //timer goes down every frame
+  alarmTimer--;
+  //play tune when timer reaches zero unless touch sensor is activated
+  if (alarmTimer < 0) {
+    if (!touch()) {
+      CircuitPlayground.playTone(415.300, 250);
+      delay(10);
+    }
+    if (!touch()) {
+      CircuitPlayground.playTone(329.628, 250);
+      delay(10);
+    }
+    if (!touch()) {
+      CircuitPlayground.playTone(369.990, 250);
+      delay(10);
+    }
+    if (!touch()) {
+      CircuitPlayground.playTone(246.940, 400);
+      delay(10);
+    }
+    if (!touch()) {
+      CircuitPlayground.playTone(246.940, 250);
+      delay(10);
+    }
+    if (!touch()) {
+      CircuitPlayground.playTone(369.990, 250);
+      delay(10);
+    }
+    if (!touch()) {
+      CircuitPlayground.playTone(415.300, 250);
+      delay(10);
+    }
+    if (!touch()) {
+      CircuitPlayground.playTone(329.628, 400);
+      delay(1000);
+    }
+    alarmTimer = 3000;
+  }
+}
+
+int states() {
+  //return a number that goes down every 5 seconds
+  if (alarmTimer > 2700) {
+    return 10;
+  }
+  if (alarmTimer < 2700 && alarmTimer > 2400) {
+    return 9;
+  }
+  if (alarmTimer < 2400 && alarmTimer > 2100) {
+    return 8;
+  }
+  if (alarmTimer < 2100 && alarmTimer > 1800) {
+    return 7;
+  }
+  if (alarmTimer < 1800 && alarmTimer > 1500) {
+    return 6;
+  }
+  if (alarmTimer < 1500 && alarmTimer > 1200) {
+    return 5;
+  }
+  if (alarmTimer < 1200 && alarmTimer > 900) {
+    return 4;
+  }
+  if (alarmTimer < 900 && alarmTimer > 600) {
+    return 3;
+  }
+  if (alarmTimer < 600 && alarmTimer > 300) {
+    return 2;
+  }
+  if (alarmTimer < 300 && alarmTimer > 0) {
+    return 1;
+  }
+  if (alarmTimer < 0) {
+    return 0;
+  }
+}
+//returns true if any touch sensor is set off
+boolean touch() {
+  if (CircuitPlayground.readCap(1) < 380 && CircuitPlayground.readCap(2) < 380 && CircuitPlayground.readCap(3)
+      < 380 && CircuitPlayground.readCap(4) < 380 && CircuitPlayground.readCap(5) < 380 && CircuitPlayground.readCap(6) < 380
+      && CircuitPlayground.readCap(7) < 380) {
+    return false;
+  }
+  else return true;
+}
