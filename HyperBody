@@ -1,0 +1,95 @@
+#include <Adafruit_NeoPixel.h>
+#include <Adafruit_CircuitPlayground.h>
+
+
+
+float temp;
+float tempF;
+#define LED_PIN        6
+#define NUMPIXELS  1
+#define MINUTE 6000
+#define SECOND 100
+#define MAXTEMP1 90
+#define MAXTEMP2 115
+int safeTimer = 15*SECOND;
+int tempTimer = 0;
+int moveTimer;
+int breakTimer = 1;
+boolean moving;
+boolean breakTime;
+
+
+
+Adafruit_NeoPixel pixel(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+
+///////////////////////////////////////////////////////////////////////////////
+void setup() {
+  Serial.begin(9600);
+
+  // Initialize Circuit Playground
+  CircuitPlayground.begin();
+  pixel.begin();
+  pixel.clear();
+  pixel.setBrightness(50);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void loop() {
+  // set temp variables
+  temp = CircuitPlayground.temperature();
+  tempF = CircuitPlayground.temperatureF();
+
+  // print temperature celsius and fahrenheit
+//  Serial.println(temp);
+//  Serial.print(",");
+//  Serial.println(tempF);
+
+
+  //set motion variable
+  float movement = abs(CircuitPlayground.motionX()) + abs(CircuitPlayground.motionY()) + abs(CircuitPlayground.motionZ());
+  //detect continuous movement
+  if(movement > 17) moving = true;
+  else moving = false;
+
+  //detect when movement has stopped and set timer, set off boolean so 1 hour timer does not stop every time movement stops
+  if(!moving) {
+    safeTimer--;
+    if(safeTimer < 0){
+      breakTime = true;
+    }
+  }
+  //else start countdown to detect that item has been put down
+  else safeTimer = 15*SECOND;
+  //
+
+  //drop timer when temperature > 90 F and break has not already been called
+  if(tempF > MAXTEMP1 && !breakTime){
+    tempTimer --;
+    //set warning light
+    pixel.setPixelColor(0,255,255,0);
+  }
+  //all clear light when temperature is safe
+  if(tempF < MAXTEMP1){
+    pixel.setPixelColor(0,0,255,0);
+  }
+  Serial.println(safeTimer);
+  //danger light if 1 hour is elapsed
+  if(tempTimer < 0){
+    pixel.setPixelColor(0,255,0,0);
+    
+  }
+  //reset warning timer when break starts
+  if(breakTime){
+    pixel.clear();
+    breakTimer--;
+  }
+  //stop break after 15 minutes
+  if(breakTimer < 1){
+    breakTime = false;
+    //if > 90, 1 hour timer
+    if (tempF > MAXTEMP1 && tempF < MAXTEMP2) tempTimer = 60*MINUTE;
+    else if (tempF > MAXTEMP2) tempTimer = 45*MINUTE;
+  }
+
+  pixel.show();
