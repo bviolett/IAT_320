@@ -2,21 +2,29 @@
 #include <Adafruit_CircuitPlayground.h>
 
 
-
+//stores the room temperature in fahrenheit and celsius
 float temp;
 float tempF;
+//pin out for neopixel LED
 #define LED_PIN        6
+//number of LEDs
 #define NUMPIXELS  1
+//flat one minute and one second to easily set timers of different amounts of minutes and seconds
 #define MINUTE 6000
 #define SECOND 100
+//maximum temperature and excessive temperature
 #define MAXTEMP1 90
 #define MAXTEMP2 115
-int safeTimer = 15*SECOND;
-int tempTimer = 0;
-int moveTimer;
+//timer variable that counts down when the device is not moving
+int safeTimer = 5 * SECOND;
+//timer that counts down while device is moving
+int tempTimer = 0.25 * MINUTE;
+//timer that counts down when "break" has been called
 int breakTimer = 1;
+//boolean that checks if device is moving
 boolean moving;
-boolean breakTime;
+//boolean that calls break, set false by default so that the device is off break when turned on
+boolean breakTime = false;
 
 
 
@@ -40,56 +48,58 @@ void loop() {
   temp = CircuitPlayground.temperature();
   tempF = CircuitPlayground.temperatureF();
 
-  // print temperature celsius and fahrenheit
-//  Serial.println(temp);
-//  Serial.print(",");
-//  Serial.println(tempF);
-
 
   //set motion variable
   float movement = abs(CircuitPlayground.motionX()) + abs(CircuitPlayground.motionY()) + abs(CircuitPlayground.motionZ());
   //detect continuous movement
-  if(movement > 17) moving = true;
+  if (movement > 17) moving = true;
   else moving = false;
 
   //detect when movement has stopped and set timer, set off boolean so 1 hour timer does not stop every time movement stops
-  if(!moving) {
+  if (!moving) {
     safeTimer--;
-    if(safeTimer < 0){
+    if (safeTimer < 0) {
       breakTime = true;
+
     }
   }
   //else start countdown to detect that item has been put down
-  else safeTimer = 15*SECOND;
+  else safeTimer = 15 * SECOND;
   //
 
   //drop timer when temperature > 90 F and break has not already been called
-  if(tempF > MAXTEMP1 && !breakTime){
+  if (tempF > MAXTEMP1 && !breakTime) {
     tempTimer --;
     //set warning light
-    pixel.setPixelColor(0,255,255,0);
+    pixel.setPixelColor(0, 255, 255, 0);
   }
   //all clear light when temperature is safe
-  if(tempF < MAXTEMP1){
-    pixel.setPixelColor(0,0,255,0);
+  if (tempF < MAXTEMP1) {
+    pixel.setPixelColor(0, 0, 255, 0);
+
   }
-  Serial.println(safeTimer);
-  //danger light if 1 hour is elapsed
-  if(tempTimer < 0){
-    pixel.setPixelColor(0,255,0,0);
-    
+  //danger light and alarm if 1 hour is elapsed
+  if (tempTimer < 0) {
+    pixel.setPixelColor(0, 255, 0, 0);
+    //stop it from annoying you with the 5 seconds before it detects youve put it down
+    if (moving) {
+      CircuitPlayground.playTone(800, 500);
+    }
+
   }
   //reset warning timer when break starts
-  if(breakTime){
+  if (breakTime) {
     pixel.clear();
     breakTimer--;
   }
   //stop break after 15 minutes
-  if(breakTimer < 1){
+  if (breakTimer < 1) {
     breakTime = false;
+    breakTimer = 15 * MINUTE;
     //if > 90, 1 hour timer
-    if (tempF > MAXTEMP1 && tempF < MAXTEMP2) tempTimer = 60*MINUTE;
-    else if (tempF > MAXTEMP2) tempTimer = 45*MINUTE;
+    if (tempF > MAXTEMP1 && tempF < MAXTEMP2) tempTimer = 60 * MINUTE;
+    //if > 115, 45 minute timer
+    else if (tempF > MAXTEMP2) tempTimer = 45 * MINUTE;
   }
 
   pixel.show();
