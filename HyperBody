@@ -99,7 +99,10 @@ void loop() {
     //if > 90, 1 hour timer
     if (tempF > MAXTEMP1 && tempF < MAXTEMP2) tempTimer = 60 * MINUTE;
     //if > 115, 45 minute timer
-    else if (tempF > MAXTEMP2) tempTimer = 45 * MINUTE;
+    else if (tempF > MAXTEMP2){
+    tempTimer = 45 * MINUTE;
+    breakTimer = 45*MINUTE;
+    }
   }
 
   pixel.show();
