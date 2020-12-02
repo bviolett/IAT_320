@@ -1,0 +1,73 @@
+#include <Adafruit_NeoPixel.h>
+#include <Adafruit_CircuitPlayground.h>
+
+
+//pin out for neopixel LED
+#define LED_PIN        A1
+//number of LEDs
+#define NUMPIXELS  8
+
+Adafruit_NeoPixel pixel(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  CircuitPlayground.begin();
+  //keep accelerometer less sensitive so it doesn't go off at every shake
+  CircuitPlayground.setAccelRange(LIS3DH_RANGE_8_G);
+  pixel.begin();
+  pixel.clear();
+  pixel.setBrightness(50);
+}
+//acceleration storage variable
+float ySpeed;
+//difference between current acceleration and previous
+float accel;
+//previous acceleration storage variable
+float ySpeedPrev = 0;
+
+void loop() {
+//measure vertical acceleration
+  ySpeed = CircuitPlayground.motionY();
+  //difference in accleration between current frame and last
+  accel = ySpeed - ySpeedPrev;
+  //Serial.println(ySpeed);
+  delay(100);
+  //set current acceleration for next loop
+  ySpeedPrev = ySpeed;
+  //run flash method if upwards vertical acceleration has increased significantly since previous frame, indicating sudden stop
+  if (accel > 2|| CircuitPlayground.leftButton()) {
+  stomp();
+  }
+  //by default, all lights remain low
+  for(int i = 0; i < 5; i++){
+  pixel.setPixelColor(i, 100,0,0);
+  }
+  pixel.show();
+}
+void stomp() {
+  //staggered light flash
+  for (int i = 0; i < 3; i++) {
+    //first loop, flash center light
+    if (i == 0) {
+      pixel.setPixelColor(2, 255,0,0);
+      pixel.show();
+    }
+    //second loop, flash lights next to center
+    else if (i == 1){
+      pixel.setPixelColor(1, 255,0,0);
+      pixel.setPixelColor(3, 255,0,0);
+      pixel.show();
+    }
+    //third loop, flash outer lights
+    else if(i == 2){
+      pixel.setPixelColor(0, 255,0,0);
+      pixel.setPixelColor(4, 255,0,0);
+      pixel.show();
+    }
+    //pause between loops
+    delay(100);
+    Serial.println("yes");
+  }
+
+}
