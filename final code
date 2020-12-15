@@ -1,0 +1,167 @@
+#include <Adafruit_NeoPixel.h>
+#include <Adafruit_CircuitPlayground.h>
+
+
+//pin out for neopixel LED
+#define LED_PIN        A1
+//number of LEDs
+#define NUMPIXELS  8
+
+// the value of the 'other' resistor
+#define SERIESRESISTOR 10000
+
+// thermistor-1.ino Simple test program for a thermistor for Adafruit Learning System
+// https://learn.adafruit.com/thermistor/using-a-thermistor by Limor Fried, Adafruit Industries
+// MIT License - please keep attribution and consider buying parts from Adafruit
+
+// What pin to connect the sensor to
+#define SENSORPIN A5
+//number of data places in smoothing average
+#define NUMDATA 30
+//array for smoothing
+int data[NUMDATA];
+//average
+int totalData = 0;
+//position of smoothing array
+int dataPlace = 0;
+//smoothing output
+int avg = 0;
+//target resistance that must be exceeded
+int restingPos;
+
+//boolean switch for colours
+boolean presetCheck = false;
+
+
+Adafruit_NeoPixel pixel(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(9600);
+  CircuitPlayground.begin();
+  //keep accelerometer less sensitive so it doesn't go off at every shake
+  CircuitPlayground.setAccelRange(LIS3DH_RANGE_8_G);
+  pixel.begin();
+  pixel.clear();
+  pixel.setBrightness(50);
+  restingPos = 2000;
+}
+//acceleration storage variable
+float ySpeed;
+//difference between current acceleration and previous
+float accel;
+//previous acceleration storage variable
+float ySpeedPrev = 0;
+
+
+void loop() {
+  if (on()) {
+    //measure vertical acceleration
+    ySpeed = CircuitPlayground.motionY();
+    //difference in acceleration between current frame and last
+    accel = ySpeed - ySpeedPrev;
+    //Serial.println(ySpeed);
+    delay(100);
+    //set current acceleration for next loop
+    ySpeedPrev = ySpeed;
+    //run flash method if upwards vertical acceleration has increased significantly since previous frame, indicating sudden stop
+    if (accel > 2 || CircuitPlayground.leftButton()) {
+      stomp();
+    }
+    //Turn on lights while on
+    for (int i = 0; i < 5; i++) {
+      pixel.setPixelColor(i, presets(0), 0, presets(2));
+    }
+  }
+  //turn off lights if bent
+  else pixel.clear();
+  pixel.show();
+}
+
+int presets(int place){
+  //color presets, return red if true, purple if false
+if(presetCheck == false){
+  if (place == 0)return 255;
+  else if(place == 1) return 0;
+  else if(place = 2) return 0;
+}
+else if(presetCheck == true){
+  if (place == 0)return 255;
+  else if(place == 1) return 200;
+  else if(place == 2) return 255;
+}
+
+}
+
+void stomp() {
+  //change colours to purple if red
+  if(presetCheck)presetCheck = false;
+  //change to red if purple
+  else if (!presetCheck) presetCheck = true;
+  //staggered light flash to update colours in sequence
+  for (int i = 0; i < 3; i++) {
+    //first loop, flash center light
+    if (i == 0) {
+      pixel.setPixelColor(2, presets(0),0,presets(2));
+      pixel.show();
+    }
+    //second loop, flash lights next to center
+    else if (i == 1) {
+      pixel.setPixelColor(1, presets(0),0,presets(2));
+      pixel.setPixelColor(3, presets(0),0,presets(2));
+      pixel.show();
+    }
+    //third loop, flash outer lights
+    else if (i == 2) {
+      pixel.setPixelColor(0, presets(0),0,presets(2));
+      pixel.setPixelColor(4, presets(0),0,presets(2));
+      pixel.show();
+    }
+    //pause between loops
+    delay(130);
+    Serial.println("yes");
+  }
+
+}
+
+//check if bag is held
+boolean on() {
+  //remove last reading
+  totalData -= data[dataPlace];
+  //add latest sensor reading to array
+  data[dataPlace] = read();
+  //add latest reading to total of array
+  totalData = totalData + data[dataPlace];
+  //next position of array
+  dataPlace = dataPlace + 1;
+  //return to position zero when array completes
+  if (dataPlace >= NUMDATA) {
+    dataPlace = 0;
+  }
+  //find average
+  avg = totalData / NUMDATA;
+  //set current resistance as target to calibrate
+  if (CircuitPlayground.leftButton()) restingPos = avg;
+  //if sensor reads as bent, return false
+  if (restingPos + 50 < avg) {
+    return false;
+  }
+  //if straight, return true
+  else {
+    return true;
+  }
+
+}
+float read() {
+
+  float reading;
+
+  //reading from sensor
+  reading = analogRead(SENSORPIN);
+
+  // convert the value to resistance
+  reading = (1023 / reading)  - 1;     // (1023/ADC - 1)
+  reading = SERIESRESISTOR / reading;  // 10K / (1023/ADC - 1)
+
+  return reading;
+}
